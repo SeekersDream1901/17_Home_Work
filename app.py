@@ -3,6 +3,7 @@ from flask_restx import Api, Resource
 from flask_sqlalchemy import SQLAlchemy
 from marshmallow import Schema, fields
 
+
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///test.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -10,8 +11,8 @@ db = SQLAlchemy(app)
 
 api = Api(app)
 movies_ns = api.namespace("movies")
-director_ns = api.namespace("director")
-genre_ns = api.namespace("genre")
+director_ns = api.namespace("directors")
+genre_ns = api.namespace("genres")
 
 
 class Movie(db.Model):
@@ -82,13 +83,13 @@ class MoviesView(Resource):
 
         genre_id = request.args.get("genre_id")
         if genre_id is not None:
-            all_movies = all_movies.filter(Movie.genre == genre_id)
+            all_movies = all_movies.filter(Movie.genre_id == genre_id)
 
         return movies_schema.dump(all_movies), 200
 
     def post(self):
-        request_json = request.json
-        new_movie = Movie(**request_json)
+        req_json = request.json
+        new_movie = Movie(**req_json)
 
         with db.session.begin():
             db.session.add(new_movie)
@@ -103,23 +104,24 @@ class MovieView(Resource):
         return movie_schema.dump(movie), 200
 
     def put(self, id):
-        updated_rows = db.session.query(Movie).filter(Movie.id == id).update(request.json)
+        updated_movie = db.session.query(Movie).filter(Movie.id == id).update(request.json)
+        db.session.commit()
 
-        if not updated_rows:
-            return "", 400
+        if not updated_movie:
+            return "Error. Movie data not updated", 400
 
-        return "", 204
+        return "Movie data updated successfully.", 204
 
     def delete(self, id):
         deleted_row = db.session.query(Movie).get(id)
 
         if not deleted_row:
-            return "", 400
+            return "Error. The movie data has not been deleted.", 400
 
         db.session.delete(deleted_row)
         db.session.commit()
 
-        return "", 204
+        return "Movie data deleted.", 204
 
 
 @director_ns.route('/')
@@ -135,7 +137,7 @@ class DirectorsView(Resource):
         with db.session.begin():
             db.session.add(new_director)
 
-        return "", 201
+        return "New director successfully added.", 201
 
 
 @director_ns.route('/<int:id>')
@@ -145,23 +147,24 @@ class DirectorView(Resource):
         return director_schema.dump(director), 200
 
     def put(self, id):
-        updated_rows = db.session.query(Movie).filter(Movie.id == id).update(request.json)
-
-        if updated_rows != 1:
-            return "", 400
-
-        return "", 204
-
-    def delete(self, id):
-        deleted_row = db.session.query(Movie).get(id)
-
-        if deleted_row != 1:
-            return "", 400
-
-        db.session.delete()
+        updated_director = db.session.query(Director).filter(Director.id == id).update(request.json)
         db.session.commit()
 
-        return "", 204
+        if not updated_director:
+            return "Error. Director not updated.", 400
+
+        return "Director updated successfully.", 204
+
+    def delete(self, id):
+        deleted_director = db.session.query(Director).get(id)
+
+        if not deleted_director:
+            return "Error. The director's data has not been deleted", 400
+
+        db.session.delete(deleted_director)
+        db.session.commit()
+
+        return "The director's data has been successfully deleted.", 204
 
 
 @genre_ns.route('/')
@@ -172,12 +175,12 @@ class GenresView(Resource):
 
     def post(self):
         request_json = request.json
-        new_genre = Director(**request_json)
+        new_genre = Genre(**request_json)
 
         with db.session.begin():
             db.session.add(new_genre)
 
-        return "", 201
+        return "New genre successfully added.", 201
 
 
 @genre_ns.route('/<int:id>')
@@ -187,23 +190,24 @@ class GenreView(Resource):
         return genre_schema.dump(genre), 200
 
     def put(self, id):
-        updated_rows = db.session.query(Movie).filter(Movie.id == id).update(request.json)
-
-        if updated_rows != 1:
-            return "", 400
-
-        return "", 204
-
-    def delete(self, id):
-        deleted_row = db.session.query(Movie).get(id)
-
-        if deleted_row != 1:
-            return "", 400
-
-        db.session.delete()
+        updated_genre = db.session.query(Genre).filter(Genre.id == id).update(request.json)
         db.session.commit()
 
-        return "", 204
+        if not updated_genre:
+            return "Error. Genre not updated.", 400
+
+        return "Genre updated successfully", 204
+
+    def delete(self, id):
+        deleted_genre = db.session.query(Genre).get(id)
+
+        if not deleted_genre:
+            return "Error. Genre not deleted.", 400
+
+        db.session.delete(deleted_genre)
+        db.session.commit()
+
+        return "Genre deleted successfully", 204
 
 
 if __name__ == '__main__':
